@@ -1,7 +1,7 @@
 # yosys
 Shell script for installing Yosys, the open source synthesis suite for Verilog HDL.
-
-https://github.com/YosysHQ/yosys
+1) https://github.com/YosysHQ/yosys
+2) https://yosyshq.net/yosys/
 
 ## Usage:
 ```
