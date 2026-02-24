@@ -1,0 +1,48 @@
+# synth/scripts/synth.ys
+# Yosys synthesis script for sky130 HD standard-cell library
+# Usage: yosys synth/scripts/synth.ys
+#        (invoked by Makefile; variables are substituted via sed or yosys -D)
+
+# ── Read RTL from filelist ────────────────────────────────────────────────────
+# The Makefile generates a yosys-compatible read block from rtl.f
+# and writes it to synth/scripts/read_rtl.ys before calling this script.
+script synth/scripts/read_rtl.ys
+
+# ── Elaborate & check ────────────────────────────────────────────────────────
+hierarchy -check -top counter
+proc
+flatten
+
+# ── Pre-mapping optimisation ──────────────────────────────────────────────────
+opt_expr
+opt_clean
+check
+opt -nodffe_pm
+fsm
+opt
+wreduce
+peepopt
+opt_clean
+share
+opt
+booth
+
+# ── Technology mapping ────────────────────────────────────────────────────────
+# Map flip-flops first (sky130 uses dfxtp cells)
+dfflibmap -liberty $(SKY130_LIB)/sky130_fd_sc_hd__tt_025C_1v80.lib
+
+# Map combinational logic
+abc -liberty $(SKY130_LIB)/sky130_fd_sc_hd__tt_025C_1v80.lib \
+    -constr  $(SDC) \
+    -D 10000  # 10 ns = 100 MHz target period in ps? abc uses ps → 10000 ps
+
+# ── Post-mapping cleanup ──────────────────────────────────────────────────────
+opt_clean -purge
+setundef -zero
+
+# ── Reports ───────────────────────────────────────────────────────────────────
+tee -o $(REPORTS)/synth_stat.rpt    stat -liberty $(SKY130_LIB)/sky130_fd_sc_hd__tt_025C_1v80.lib
+tee -o $(REPORTS)/synth_check.rpt   check
+
+# ── Write netlist ─────────────────────────────────────────────────────────────
+write_verilog -noattr -noexpr -nohex -nodec $(NETLIST)
