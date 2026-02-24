@@ -46,6 +46,7 @@ ALTERA_DEVICE   ?= EP4CE22F17C6              # Cyclone IV E (DE0-Nano)
 ALTERA_FAMILY   ?= "Cyclone IV E"
 
 # ── sky130 library paths ──────────────────────────────────────────────────────
+# Override on command line:  make SKY130_ROOT=/path/to/open_pdks/sky130A
 SKY130_ROOT ?= $(PDK_ROOT)/sky130A
 SKY130_LIB  := $(SKY130_ROOT)/libs.ref/sky130_fd_sc_hd/lib
 SKY130_LEF  := $(SKY130_ROOT)/libs.ref/sky130_fd_sc_hd/lef/sky130_fd_sc_hd.lef
@@ -76,7 +77,6 @@ SDC         := $(CONSTR_DIR)/$(DESIGN).sdc
 
 # ── Output files ──────────────────────────────────────────────────────────────
 READ_RTL_YS := $(SCRIPTS_DIR)/read_rtl.ys          # auto-generated (sky130)
-SYNTH_YS    := $(SCRIPTS_DIR)/synth.ys
 NETLIST     := $(NETLIST_DIR)/$(DESIGN)_netlist.v
 STAT_RPT    := $(REPORTS_DIR)/synth_stat.rpt
 CHECK_RPT   := $(REPORTS_DIR)/synth_check.rpt
@@ -111,12 +111,12 @@ synth_all:
 	@$(MAKE) --no-print-directory FLOW=altera  _synth_altera
 
 ##############################################################################
-# sky130 – Yosys + SkyWater open-source ASIC flow  (unchanged)
+# sky130 – Yosys + SkyWater open-source ASIC flow
 ##############################################################################
 .PHONY: _synth_sky130
 _synth_sky130: $(NETLIST)
 
-$(NETLIST): $(RTL_SOURCES) $(SDC) $(SYNTH_YS) $(LIBERTY) | dirs
+$(NETLIST): $(RTL_SOURCES) $(SDC) $(LIBERTY) | dirs
 	@echo "============================================================"
 	@echo "  Synthesising $(DESIGN) → sky130 HD  (100 MHz)"
 	@echo "============================================================"
@@ -126,17 +126,23 @@ $(NETLIST): $(RTL_SOURCES) $(SDC) $(SYNTH_YS) $(LIBERTY) | dirs
 	@grep -v '^\s*#' $(FILELIST) | grep -v '^\s*$$' | \
 	    sed 's|^|read_verilog $(PROJ_ROOT)/|' >> $(READ_RTL_YS)
 
-	# --- Run Yosys ---
+	# --- Run Yosys (all variables expanded by Make before Yosys sees them) ---
 	$(YOSYS) -l $(REPORTS_DIR)/yosys.log \
-	         -p "script $(SYNTH_YS)" \
-	         -D SKY130_LIB=$(SKY130_LIB) \
-	         -D SDC=$(SDC) \
-	         -D REPORTS=$(REPORTS_DIR) \
-	         -D NETLIST=$(NETLIST)
+	    -p "script $(READ_RTL_YS); \
+	        hierarchy -check -top $(TOP_MODULE); \
+	        proc; flatten; opt_expr; opt_clean; check; opt_dff -nodffe; \
+	        fsm; opt; wreduce; peepopt; opt_clean; share; opt; booth; \
+	        dfflibmap -liberty $(LIBERTY); \
+	        abc -liberty $(LIBERTY) -constr $(SDC) -D 10000; \
+	        opt_clean -purge; setundef -zero; \
+	        tee -o $(STAT_RPT) stat -liberty $(LIBERTY); \
+	        tee -o $(CHECK_RPT) check; \
+	        write_verilog -noattr -noexpr -nohex -nodec $(NETLIST)"
 
 	@echo ""
 	@echo "  ✔ Netlist written : $(NETLIST)"
 	@echo "  ✔ Area report     : $(STAT_RPT)"
+	@echo "  ✔ Check report    : $(CHECK_RPT)"
 	@echo "  ✔ Yosys log       : $(REPORTS_DIR)/yosys.log"
 
 ##############################################################################
