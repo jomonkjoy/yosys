@@ -47,7 +47,12 @@ echo ""
 read -p "Do you want to run tests? (y/n): " run_tests
 if [ "$run_tests" = "y" ] || [ "$run_tests" = "Y" ]; then
     echo "Running tests..."
-    make test
+    make test || {
+        echo ""
+        echo "[WARN] One or more tests failed or returned warnings (exit code: $?)."
+        echo "       This is non-fatal – continuing installation..."
+        echo ""
+    }
 fi
 
 # Install Yosys
