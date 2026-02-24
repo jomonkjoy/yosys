@@ -1,33 +1,48 @@
 #!/usr/bin/env bash
 # =============================================================================
 # setup_project.sh
-# Creates the counter_block RTL synthesis project directory structure.
+# Creates the counter_synth RTL synthesis project directory structure.
+# Mirrors the three-flow Makefile layout (sky130 / xilinx / altera):
+#
+#   synth/scripts/          – shared Yosys / Vivado / Quartus scripts
+#   synth/sky130/{reports,netlist,impl}
+#   synth/xilinx/{reports,netlist,impl}
+#   synth/altera/{reports,netlist,impl}
+#
 # A .gitkeep file is placed in every leaf directory so empty folders are
 # tracked by Git.
 #
 # Usage:
-#   ./setup_project.sh [PROJECT_ROOT]
+#   ./setup_project.sh [BASE_DIR]
 #
 # Examples:
-#   ./setup_project.sh                   # creates ./counter_block
-#   ./setup_project.sh ~/projects        # creates ~/projects/counter_block
+#   ./setup_project.sh                   # creates ./counter_synth
+#   ./setup_project.sh ~/projects        # creates ~/projects/counter_synth
 # =============================================================================
 
 set -euo pipefail
 
 # ── Resolve project root ──────────────────────────────────────────────────────
 BASE_DIR="${1:-.}"
-PROJECT_NAME="counter_block"
+PROJECT_NAME="counter_synth"
 ROOT="${BASE_DIR}/${PROJECT_NAME}"
 
 # ── Directory list ────────────────────────────────────────────────────────────
+# Per-flow output dirs added for sky130 / xilinx / altera (Makefile FLOW=)
 DIRS=(
     "rtl"
     "filelist"
     "constraints"
     "synth/scripts"
-    "synth/reports"
-    "synth/netlist"
+    "synth/sky130/reports"
+    "synth/sky130/netlist"
+    "synth/sky130/impl"
+    "synth/xilinx/reports"
+    "synth/xilinx/netlist"
+    "synth/xilinx/impl"
+    "synth/altera/reports"
+    "synth/altera/netlist"
+    "synth/altera/impl"
 )
 
 # ── Colour helpers (graceful fallback if terminal has no colour support) ──────
@@ -76,8 +91,21 @@ echo ""
 echo "${GREEN}Done!${RESET}  Project scaffold ready at: ${ROOT}"
 echo ""
 echo "Next steps:"
-echo "  1. Copy your RTL into        ${ROOT}/rtl/"
-echo "  2. Edit the filelist at      ${ROOT}/filelist/rtl.f"
-echo "  3. Adjust constraints at     ${ROOT}/constraints/counter.sdc"
-echo "  4. Run synthesis with        cd ${ROOT} && make"
+echo "  1. Copy your RTL into          ${ROOT}/rtl/"
+echo "  2. Edit the filelist at        ${ROOT}/filelist/rtl.f"
+echo ""
+echo "  Constraints (one file per flow):"
+echo "    sky130 / altera (SDC)  →   ${ROOT}/constraints/<design>.sdc"
+echo "    xilinx  (XDC)          →   ${ROOT}/constraints/<design>.xdc"
+echo ""
+echo "  Synthesis commands:"
+echo "    make FLOW=sky130             # Yosys + SkyWater sky130 HD"
+echo "    make FLOW=xilinx             # Vivado  (set XILINX_PART=... )"
+echo "    make FLOW=altera             # Quartus (set ALTERA_DEVICE=...)"
+echo "    make synth_all               # run all three flows"
+echo ""
+echo "  Flow outputs land in:"
+echo "    ${ROOT}/synth/<flow>/reports/"
+echo "    ${ROOT}/synth/<flow>/netlist/"
+echo "    ${ROOT}/synth/<flow>/impl/"
 echo ""
