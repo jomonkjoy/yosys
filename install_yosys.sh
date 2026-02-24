@@ -22,13 +22,19 @@ echo ""
 echo "Step 2: Installing uv..."
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Clone Yosys repository with submodules
+# Clone Yosys repository with submodules (skip if already present)
 echo ""
 echo "Step 3: Cloning Yosys repository..."
 cd /tmp
-rm -rf yosys
-git clone --recurse-submodules https://github.com/YosysHQ/yosys.git
-cd yosys
+if [ -d "yosys/.git" ]; then
+    echo "  Repository already exists – pulling latest changes..."
+    cd yosys
+    git pull --ff-only
+    git submodule update --init --recursive
+else
+    git clone --recurse-submodules https://github.com/YosysHQ/yosys.git
+    cd yosys
+fi
 
 # Build Yosys
 echo ""
