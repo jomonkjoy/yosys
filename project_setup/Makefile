@@ -130,8 +130,9 @@ $(NETLIST): $(RTL_SOURCES) $(SDC) $(LIBERTY) | dirs
 	$(YOSYS) -l $(REPORTS_DIR)/yosys.log \
 	    -p "script $(READ_RTL_YS); \
 	        hierarchy -check -top $(TOP_MODULE); \
-	        proc; flatten; opt_expr; opt_clean; check; opt_dff -nodffe; \
+	        proc; flatten; opt_expr; opt_clean; check; opt_dff; \
 	        fsm; opt; wreduce; peepopt; opt_clean; share; opt; booth; \
+	        techmap -map +/techmap.v; opt_clean; \
 	        dfflibmap -liberty $(LIBERTY); \
 	        abc -liberty $(LIBERTY) -constr $(SDC) -D 10000; \
 	        opt_clean -purge; setundef -zero; \
@@ -288,7 +289,8 @@ sta: $(NETLIST)
 .PHONY: clean
 clean:
 	@echo "--- Cleaning FLOW=$(FLOW) outputs ---"
-	@rm -rf $(SYNTH_DIR)/$(FLOW) $(SCRIPTS_DIR)/read_rtl.ys \
+	@rm -rf $(SYNTH_DIR)/$(FLOW) \
+	         $(REPORTS_DIR)/yosys.log $(SCRIPTS_DIR)/read_rtl.ys \
 	         $(SCRIPTS_DIR)/vivado_synth.tcl vivado*.log vivado*.jou
 	@echo "  ✔ Clean done ($(FLOW))"
 
@@ -296,8 +298,8 @@ clean:
 clean_all:
 	@echo "--- Cleaning ALL flow outputs ---"
 	@rm -rf $(SYNTH_DIR)/sky130 $(SYNTH_DIR)/xilinx $(SYNTH_DIR)/altera \
-	         $(SCRIPTS_DIR)/read_rtl.ys $(SCRIPTS_DIR)/vivado_synth.tcl \
-	         vivado*.log vivado*.jou
+	         $(REPORTS_DIR)/yosys.log $(SCRIPTS_DIR)/read_rtl.ys \
+	         $(SCRIPTS_DIR)/vivado_synth.tcl vivado*.log vivado*.jou
 	@echo "  ✔ Clean done (all flows)"
 
 ##############################################################################
