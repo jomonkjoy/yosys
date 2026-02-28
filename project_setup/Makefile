@@ -124,7 +124,7 @@ $(NETLIST): $(RTL_SOURCES) $(SDC) $(LIBERTY) | dirs
 	# --- Generate read_rtl.ys from filelist ---
 	@echo "# Auto-generated – do not edit" > $(READ_RTL_YS)
 	@grep -v '^\s*#' $(FILELIST) | grep -v '^\s*$$' | \
-	    sed 's|^|read_verilog $(PROJ_ROOT)/|' >> $(READ_RTL_YS)
+	    sed 's|^|read_verilog -sv $(PROJ_ROOT)/|' >> $(READ_RTL_YS)
 
 	# --- Run Yosys (all variables expanded by Make before Yosys sees them) ---
 	$(YOSYS) -l $(REPORTS_DIR)/yosys.log \
