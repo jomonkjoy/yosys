@@ -15,7 +15,7 @@ echo "Step 1: Installing prerequisites..."
 sudo apt-get update
 sudo apt-get install -y gawk git make python3 lld bison clang flex \
     libffi-dev libfl-dev libreadline-dev pkg-config tcl-dev zlib1g-dev \
-    graphviz xdot
+    curl graphviz xdot
 
 # Install uv (Python package installer used by Yosys)
 echo ""
